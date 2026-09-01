@@ -1,9 +1,1 @@
 anthropic>=0.40
-flask>=3.0
-python-dotenv>=1.0
-
-# 7주차에 문서를 조회할 서드파티. 실제로 쓰는 것만 남기세요.
-# 여기 없는 패키지는 decoder/docs.py 의 ALLOWED_THIRD_PARTY 에도 추가해야 합니다.
-pillow>=10.0
-httpx>=0.27
-pandas>=2.0

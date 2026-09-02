@@ -38,10 +38,16 @@ response = client.messages.create(
 print("=" * 70)
 print("응답 본문")
 print("=" * 70)
-# content 는 문자열이 아니라 '블록의 리스트' 입니다. 지금은 텍스트 블록 하나뿐이라
-# [0].text 로 꺼내지지만, 도구를 붙이면 여기에 다른 종류의 블록이 섞여 들어옵니다.
+# content 는 문자열이 아니라 '블록의 리스트' 입니다.
+#
+# [0] 을 그냥 꺼내면 안 됩니다. 최신 모델은 답하기 전에 스스로 생각하고,
+# 그 흔적이 thinking 블록으로 리스트 맨 앞에 들어옵니다. thinking 블록에는
+# .text 가 없으므로 [0].text 는 AttributeError 로 터집니다.
+#
+# 그래서 '몇 번째'가 아니라 'type 이 무엇인지'로 골라야 합니다.
+# 도구를 붙이면 여기에 tool_use 블록까지 섞여 들어옵니다.
 # 3단계에서 이 리스트가 왜 리스트인지 알게 됩니다.
-print(response.content[0].text)
+print("\n".join(b.text for b in response.content if b.type == "text"))
 
 print()
 print("=" * 70)

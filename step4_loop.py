@@ -27,7 +27,7 @@ import sys
 
 import anthropic
 
-import env  # noqa: F401  (.env 로드)
+import env  # .env 로드 + 워크스페이스 헤더
 
 from step3_tool import TOOLS, dispatch
 
@@ -39,7 +39,11 @@ SYSTEM = """당신은 코드에 대한 질문에 답합니다.
 
 
 def run(question: str, verbose: bool = True) -> str:
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    client = anthropic.Anthropic(
+        api_key=os.environ["ANTHROPIC_API_KEY"],
+        # 사용자 키는 어느 워크스페이스로 보내는지 헤더로 알려줘야 합니다. env.py 참고.
+        default_headers=env.workspace_headers(),
+    )
 
     # 대화 내역. 모델은 아무것도 기억하지 못하므로 이 리스트가 곧 기억입니다.
     # 매 호출마다 통째로 다시 보냅니다.

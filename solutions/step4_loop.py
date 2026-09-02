@@ -28,7 +28,10 @@ SYSTEM = """당신은 코드에 대한 질문에 답합니다.
 
 
 def run(question: str, verbose: bool = True, client=None) -> str:
-    client = client or anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    client = client or anthropic.Anthropic(
+        api_key=os.environ["ANTHROPIC_API_KEY"],
+        default_headers=env.workspace_headers(),
+    )
 
     messages: list[dict] = [{"role": "user", "content": question}]
 

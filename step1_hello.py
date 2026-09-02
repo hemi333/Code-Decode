@@ -13,9 +13,13 @@ import os
 
 import anthropic
 
-import env  # noqa: F401  (.env 로드)
+import env  # .env 로드 + 워크스페이스 헤더
 
-client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+client = anthropic.Anthropic(
+    api_key=os.environ["ANTHROPIC_API_KEY"],
+    # 사용자 키는 어느 워크스페이스로 보내는지 헤더로 알려줘야 합니다. env.py 참고.
+    default_headers=env.workspace_headers(),
+)
 
 response = client.messages.create(
     # 어떤 모델을 쓸지. 개발 중에는 Sonnet 으로 충분합니다.

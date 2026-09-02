@@ -29,23 +29,24 @@
 COUNT_LINES_TOOL = {
     "name": "count_lines",
     "description": (
-        # TODO: 설명을 쓰세요.
-        #
-        # 이 문장이 곧 프롬프트입니다. 모델은 함수 본문을 보지 못하고
-        # 이 설명만 보고 부를지 말지를 정합니다.
-        #
-        # 좋은 설명에는 보통 이런 게 들어갑니다.
-        #   - 무엇을 하는가
-        #   - 무엇을 반환하는가
-        #   - 언제 불러야 하는가 (특히 "추측하지 말고 이걸 불러라")
-        ""
+        "파이썬 코드 문자열을 받아 줄 수를 센다. "
+        "전체 줄 수(total)와, 빈 줄과 주석 줄을 제외한 실제 코드 줄 수(code)를 "
+        "함께 돌려준다. "
+        "코드가 몇 줄인지 묻는 질문에는 눈대중으로 세거나 추측하지 말고 "
+        "반드시 이 도구를 부를 것."
     ),
     "input_schema": {
         "type": "object",
         "properties": {
-            # TODO: code 파라미터를 정의하세요.
+            "code": {
+                "type": "string",
+                "description": (
+                    "줄 수를 셀 파이썬 소스 코드 전문. "
+                    "일부만 잘라 넣지 말고 사용자가 준 코드를 그대로 넣을 것."
+                ),
+            },
         },
-        "required": [],  # TODO: 필수 파라미터를 채우세요.
+        "required": ["code"],
     },
 }
 
@@ -72,8 +73,30 @@ def count_lines(code: str) -> dict:
         - 마지막에 개행이 있는 코드와 없는 코드에서 결과가 달라집니다.
           어느 쪽이 맞는 답입니까? 여러분이 정하고, 그 이유를 주석에 남기세요.
     """
-    # TODO: 구현하세요.
-    raise NotImplementedError("count_lines 를 구현하세요")
+    # split("\n") 이 아니라 splitlines() 를 쓴다.
+    #   "a\nb".split("\n")     -> ["a", "b"]       (2)
+    #   "a\nb\n".split("\n")   -> ["a", "b", ""]   (3)  <- 빈 줄이 하나 생긴다
+    #   "a\nb\n".splitlines()  -> ["a", "b"]       (2)
+    #
+    # Why: 마지막 개행을 세지 않기로 정했다. 파일 끝의 개행은
+    #      "새 줄의 시작"이 아니라 "마지막 줄의 끝"을 뜻하기 때문이다.
+    #      에디터가 보여주는 줄 번호와도 이쪽이 맞는다.
+    lines = code.splitlines()
+
+    # 같은 근거의 연장으로, 끝에 붙은 빈 줄도 세지 않는다.
+    # 덕분에 "" 와 "\n\n\n" 이 둘 다 0 줄로 일관되게 나온다.
+    while lines and not lines[-1].strip():
+        lines.pop()
+
+    code_lines = 0
+    for line in lines:
+        stripped = line.strip()
+        # 빈 줄과 # 로 시작하는 줄은 코드로 세지 않는다.
+        # (문자열 안의 # 이나 docstring 은 구분하지 못한다. 진짜 파싱은 4주차 AST 의 몫이다.)
+        if stripped and not stripped.startswith("#"):
+            code_lines += 1
+
+    return {"total": len(lines), "code": code_lines}
 
 
 # ---------------------------------------------------------------------------

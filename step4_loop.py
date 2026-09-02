@@ -74,7 +74,13 @@ def run(question: str, verbose: bool = True) -> str:
         # 왜 stop_reason 으로 판단합니까? content 에 tool_use 블록이 있는지
         # 직접 뒤져도 되지 않을까요? 둘 중 무엇이 나은지 생각해보세요.
         # ------------------------------------------------------------------
-        # TODO: 여기에 종료 조건을 쓰세요.
+        # content 를 뒤지지 않고 stop_reason 으로 판단한다.
+        # stop_reason 은 모델이 "왜 멈췄는가"를 스스로 말해주는 값이고,
+        # content 를 뒤지는 건 우리가 그걸 추측하는 것이다.
+        # 예를 들어 max_tokens 로 잘려 tool_use 블록이 반쪽만 온 경우,
+        # 블록을 뒤지는 방식은 그걸 정상적인 도구 호출로 착각한다.
+        if response.stop_reason != "tool_use":
+            break
 
         # ------------------------------------------------------------------
         # 빈칸 2 · 모델이 한 말을 대화에 남긴다
@@ -88,7 +94,9 @@ def run(question: str, verbose: bool = True) -> str:
         #
         #       {"role": "assistant", "content": <여기>}
         # ------------------------------------------------------------------
-        # TODO: assistant 메시지를 messages 에 추가하세요.
+        # response.content 를 통째로 넣는다. 텍스트만 뽑거나 str() 로 바꾸면
+        # tool_use 블록의 id 가 사라지고, 다음 턴에서 tool_result 와 짝이 맞지 않는다.
+        messages.append({"role": "assistant", "content": response.content})
 
         # ------------------------------------------------------------------
         # 빈칸 3 · 도구를 실행하고 결과를 모은다
@@ -107,7 +115,23 @@ def run(question: str, verbose: bool = True) -> str:
         # 하나라도 빠뜨리면 API 가 400 을 돌려줍니다. 직접 빠뜨려보세요.
         # ------------------------------------------------------------------
         results: list[dict] = []
-        # TODO: 도구를 실행하고 results 를 채우세요.
+        for block in response.content:
+            # 같은 응답에 text 블록이 섞여 있을 수 있다. tool_use 만 고른다.
+            if block.type != "tool_use":
+                continue
+
+            output = dispatch(block.name, block.input)
+
+            results.append(
+                {
+                    "type": "tool_result",
+                    # 어느 호출에 대한 답인지. 한 턴에 도구가 여러 개면 이게 유일한 단서다.
+                    "tool_use_id": block.id,
+                    # content 는 문자열이어야 한다. dict 는 그대로 넣을 수 없다.
+                    # ensure_ascii=False 는 한글이 이스케이프되지 않게 하려는 것.
+                    "content": json.dumps(output, ensure_ascii=False),
+                }
+            )
 
         # ------------------------------------------------------------------
         # 빈칸 4 · 결과를 대화에 붙인다
@@ -120,7 +144,9 @@ def run(question: str, verbose: bool = True) -> str:
         # 이 관점은 나중에 중요해집니다 — 도구 결과는 신뢰할 수 있는
         # 시스템 지시가 아니라, 검증이 필요한 입력이라는 뜻이니까요.
         # ------------------------------------------------------------------
-        # TODO: tool_result 들을 messages 에 추가하세요.
+        # role 은 "user". 이번 턴의 tool_result 를 한 메시지에 전부 담는다.
+        # 하나라도 빠뜨리면 API 가 400 을 돌려준다.
+        messages.append({"role": "user", "content": results})
 
         if verbose:
             for r in results:
